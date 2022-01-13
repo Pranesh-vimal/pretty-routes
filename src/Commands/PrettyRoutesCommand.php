@@ -17,7 +17,7 @@ class PrettyRoutesCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'pretty:routes';
+    protected $signature = 'route:pretty';
 
     /**
      * The console command description.
@@ -350,6 +350,7 @@ class PrettyRoutesCommand extends Command
 
         return sprintf(
             '  <fg=white;options=bold>%s</>%s<fg=white;options=bold>%s</><fg=#6C7280> %s </>%s',
+            $host,
             $method,
             $spaces,
             preg_replace('#({[^}]+})#', '<comment>$1</comment>', $uri),
