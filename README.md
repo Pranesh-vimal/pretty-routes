@@ -9,7 +9,7 @@
 You can install the package via composer:
 
 ```bash
-composer require pranesh/pretty-routes
+composer require pranesh/pretty-routes --dev
 ```
 
 ## Usage
