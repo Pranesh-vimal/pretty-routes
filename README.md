@@ -17,7 +17,9 @@ composer require pranesh/pretty-routes
 ## Usage
 
 ```php
-// Usage description here
+
+php artisan route:pretty
+
 ```
 
 ### Testing
