@@ -17,7 +17,7 @@ class PrettyRoutesCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'route:pretty';
+    public $name = 'route:pretty';
 
     /**
      * The console command description.
@@ -194,7 +194,7 @@ class PrettyRoutesCommand extends Command
         }
 
         if ($this->option('path')) {
-            if (count(array_filter(explode(',', $this->option('only-path')), function (string $element) use ($route) {
+            if (count(array_filter(explode(',', $this->option('path')), function (string $element) use ($route) {
                 return Str::contains($route['uri'], $element);
             })) == 0) {
                 $tempRoute = null;
@@ -210,7 +210,7 @@ class PrettyRoutesCommand extends Command
         }
 
         if ($this->option('name')) {
-            if (count(array_filter(explode(',', $this->option('only-name')), function (string $element) use ($route) {
+            if (count(array_filter(explode(',', $this->option('name')), function (string $element) use ($route) {
                 return Str::contains($route['name'], $element);
             })) == 0) {
                 $tempRoute = null;
@@ -310,10 +310,40 @@ class PrettyRoutesCommand extends Command
         $terminalWidth = $this->getTerminalWidth();
 
         $maxMethod = strlen(collect($routes)->max('method'));
+        $maxHost = strlen(collect($routes)->max('host'));
+
+        $this->output->writeln('<fg=white;options=bold>' . str_repeat('-', $terminalWidth) . '</>');
+        $this->output->writeln($this->renderHeading($this->headers, $routes[0], $terminalWidth, $maxMethod, $maxHost));
+        $this->output->writeln('<fg=white;options=bold>' . str_repeat('-', $terminalWidth) . '</>');
 
         foreach ($routes as $route) {
-            $this->output->writeln($this->renderRoute($route, $terminalWidth, $maxMethod));
+            $this->output->writeln($this->renderRoute($route, $terminalWidth, $maxMethod, $maxHost));
         }
+    }
+
+    protected function renderHeading($headers, $route, $terminalWidth, $maxMethod, $maxHost)
+    {
+        $host = $route['host'];
+        $method = $route["method"];
+        $uri = $route["uri"];
+        $name = $route["name"];
+
+        $spacesMethod = str_repeat(' ', max($maxMethod + 6 - strlen($method), 0));
+        $spacesHost = str_repeat(' ', max($maxHost + 2 - strlen($host), 0));
+
+        $additionalSpace = !is_null($name) ? 1 : 0;
+        $dots = str_repeat(' ', max($terminalWidth - strlen($host . $method . $uri . $name) - strlen($spacesMethod) - strlen($spacesHost) - 14 - $additionalSpace, 0));
+
+        return sprintf(
+            '  <fg=white;options=bold>%s</>%s<fg=white;options=bold>%s</>%s<fg=white;options=bold>%s</>%s<fg=white;options=bold>%s</>',
+            $headers[0],
+            $spacesHost,
+            $headers[1],
+            $spacesMethod,
+            preg_replace('#({[^}]+})#', '<comment>$1</comment>', $headers[2]),
+            $dots,
+            $headers[3],
+        );
     }
 
     /**
@@ -322,17 +352,18 @@ class PrettyRoutesCommand extends Command
      * @param  int  $maxMethod
      * @return string
      */
-    protected function renderRoute(array $route, int $terminalWidth, int $maxMethod): string
+    protected function renderRoute(array $route, int $terminalWidth, int $maxMethod, $maxHost): string
     {
         $host = $route['host'];
         $method = $route["method"];
         $uri = $route["uri"];
         $name = $route["name"];
 
-        $spaces = str_repeat(' ', max($maxMethod + 6 - strlen($method), 0));
+        $spacesMethod = str_repeat(' ', max($maxMethod + 6 - strlen($method), 0));
+        $spacesHost = str_repeat(' ', max($maxHost + 2 - strlen($host), 0));
 
         $additionalSpace = !is_null($name) ? 1 : 0;
-        $dots = str_repeat('.', max($terminalWidth - strlen($host . $method . $uri . $name) - strlen($spaces) - 14 - $additionalSpace, 0));
+        $dots = str_repeat('.', max($terminalWidth - strlen($host . $method . $uri . $name) - strlen($spacesMethod) - strlen($spacesHost) - 14 - $additionalSpace, 0));
 
         $method = implode('|', array_map(function ($m) {
             $color = [
@@ -349,10 +380,11 @@ class PrettyRoutesCommand extends Command
         }, explode('|', $method)));
 
         return sprintf(
-            '  <fg=white;options=bold>%s</>%s<fg=white;options=bold>%s</><fg=#6C7280> %s </>%s',
+            '  <fg=red;options=bold>%s</>%s<fg=white;options=bold>%s</>%s<fg=white;options=bold>%s</><fg=gray;options=bold>%s</><fg=yellow;options=bold>%s</>',
             $host,
+            $spacesHost,
             $method,
-            $spaces,
+            $spacesMethod,
             preg_replace('#({[^}]+})#', '<comment>$1</comment>', $uri),
             $dots,
             $name,
@@ -367,13 +399,13 @@ class PrettyRoutesCommand extends Command
     protected function getOptions()
     {
         return [
-            ['sort', null, InputOption::VALUE_OPTIONAL, 'The column (precedence, domain, method, uri, name) to sort by', 'uri'],
-            ['except-path', null, InputOption::VALUE_OPTIONAL, 'Do not display the routes matching the given path pattern (comma-separated values)'],
-            ['except-name', null, InputOption::VALUE_OPTIONAL, 'Do not display the routes matching the given name pattern'],
-            ['path', null, InputOption::VALUE_OPTIONAL, 'Only show routes matching the given path pattern'],
+            ['sort', 's', InputOption::VALUE_OPTIONAL, 'The column (precedence, domain, method, uri, name) to sort by', 'uri'],
+            ['except-path', 'ep', InputOption::VALUE_OPTIONAL, 'Do not display the routes matching the given path pattern (comma-separated values)'],
+            ['except-name', 'en', InputOption::VALUE_OPTIONAL, 'Do not display the routes matching the given name pattern'],
+            ['path', 'p', InputOption::VALUE_OPTIONAL, 'Only show routes matching the given path pattern'],
             ['name', null, InputOption::VALUE_OPTIONAL, 'Filter the routes by name'],
-            ['method', null, InputOption::VALUE_OPTIONAL, 'Filter the routes by method'],
-            ['group', null, InputOption::VALUE_OPTIONAL, 'Filter the routes by group'],
+            ['method', 'm', InputOption::VALUE_OPTIONAL, 'Filter the routes by method'],
+            ['group', 'g', InputOption::VALUE_OPTIONAL, 'Filter the routes by group'],
             ['reverse', 'r', InputOption::VALUE_NONE, 'Reverse the ordering of the routes'],
             ['reverse-group', 'rg', InputOption::VALUE_NONE, 'Reverse the ordering of the route groups'],
         ];
